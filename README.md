@@ -1,2 +1,4 @@
 # bandeirante
-Biblioteca geral para processamento de dados de séries financeiras da B3
+General library for processing B3 financial series data (brazilian stock markets)
+
+in development
