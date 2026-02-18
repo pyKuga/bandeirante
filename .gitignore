@@ -1,0 +1,11 @@
+*.TXT
+*.csv
+/original
+/dados
+
+*.db
+/.venv
+/data
+/zip
+/database
+src/bandeirante/__pycache__

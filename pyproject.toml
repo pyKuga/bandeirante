@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bandeirante"
+version = "2025.10.13"
+
+description = "BANDEIRANTE - Uma biblioteca para você desbravar os dados da B3"
+
+requires-python = ">= 3.8"
+
+authors = [
+  {name = "Paulo Kuga", email = "p204451@dac.unicamp.br"},
+]
+maintainers = [
+  {name = "Paulo Kuga", email = "p204451@dac.unicamp.br"},
+]
+
+
+readme = "README.md"
+
+dependencies = [
+  "pandas",
+  "matplotlib",
+  "scikit-learn",
+  "statsmodels",
+  "hmmlearn",
+  "numpy",
+  "emd",
+  "sktime",
+  "pydantic"
+]

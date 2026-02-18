@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: bandeirante
+Version: 2025.5.21
+Summary: BANDEIRANTE - Uma biblioteca para você desbravar os dados da B3
+Author-email: Paulo Kuga <p204451@dac.unicamp.br>
+Maintainer-email: Paulo Kuga <p204451@dac.unicamp.br>
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Requires-Dist: scikit-learn
+Requires-Dist: statsmodels
+Requires-Dist: hmmlearn
+Requires-Dist: numpy
+Requires-Dist: emd
+Requires-Dist: sktime
+
+# B3analysis
+My analysis from B3 market open data
