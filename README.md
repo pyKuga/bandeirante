@@ -1,2 +1,2 @@
 # bandeirante
-Biblioteca para processamento de dados da B3
+Biblioteca geral para processamento de dados de séries financeiras da B3
