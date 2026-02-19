@@ -131,7 +131,7 @@ def OverFill_Plotly(
 
     return fig
 
-def FigureComponents(
+def transformation_components_plot(
         model       ,   #sklearn.transformation -> but this is not a class
         Headers     :   list, 
         listOfNames =   ["PCA - Measures and Variance Components", "Correlation","PCA Components", "Original Data Features"],
