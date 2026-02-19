@@ -29,5 +29,6 @@ dependencies = [
   "numpy",
   "emd",
   "sktime",
-  "pydantic"
+  "pydantic",
+  "plotly"
 ]

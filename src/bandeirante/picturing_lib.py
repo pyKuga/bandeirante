@@ -45,7 +45,7 @@ def GaussianMixturePlot(data,gmm,strings,figsize=(7,5)):
 
     return gmm, fig
 
-def OverFill(
+def add_state_background(
         finData        : pd.DataFrame,
         Headers         : list,
         State           : str,

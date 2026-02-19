@@ -15,6 +15,7 @@ Requires-Dist: numpy
 Requires-Dist: emd
 Requires-Dist: sktime
 Requires-Dist: pydantic
+Requires-Dist: plotly
 
 # bandeirante
 General library for processing B3 financial series data (brazilian stock markets)
