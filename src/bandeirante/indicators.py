@@ -48,7 +48,7 @@ def log_ret(data : pd.Series):
 
 def signal_to_noise_ratio(data,w,close="close",high="high",low="low"):
     log_ret_result = log_ret(data[close]).rolling(w).mean()
-    volatility = parkinson(data,w,maxStr=high,minStr=low)
+    volatility = parkinson(data,w,max_str=high,min_str=low)
 
     return log_ret_result/volatility
     
