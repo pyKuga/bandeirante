@@ -13,7 +13,7 @@ from .backtest import *
 from .indicators import *
 from .risk_system import *
 from .event_detection import *
-
+from . import secret
 
 __all__ = [
     "bc_api",
@@ -32,6 +32,7 @@ __all__ = [
     "backtest",
     "indicators",
     "risk_system",
-    "event_detection"
+    "event_detection",
+    "secret"
 ]
 
