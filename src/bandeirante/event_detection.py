@@ -2,12 +2,22 @@ import numpy as np
 import pandas as pd
 from hmmlearn.hmm import GaussianHMM
 from bandeirante.indicators import signal_to_noise_ratio, log_ret
+from bandeirante.volatility_lib import get_engine_names
 
-
-def CUSUM_event_detection(log_ret,vol_hist, k_up=1, k_down=1,  h_min = 1e-3):
+def CUSUM_event_detection(
+        log_ret : pd.Series | np.ndarray,
+        vol_hist,
+        k_up=1, 
+        k_down=1,  
+        h_min = 1e-3
+        ):
 
     log_returns = log_ret.fillna(0).to_numpy()
-    loc_vol = vol_hist.to_numpy()
+    
+    if np.isscalar(vol_hist):
+        loc_vol = np.full_like(log_returns, vol_hist, dtype=float)
+    else:
+        loc_vol = pd.Series(vol_hist).to_numpy()
 
     S_pos = np.zeros(log_returns.shape)
     S_neg = np.zeros(log_returns.shape)
@@ -34,22 +44,21 @@ def time_windows(vol_hist):
     
 
 def triple_barrier(
+        dataset,
         vol_hist,
         events,
-        features,
-        dataset,
-        close_str = "Close",
-        low_str = "Low",
-        high_str = "High",
         maximum_window = 20,
         buy_label = 1,
         neutral_label = 2,
         sell_label = 0,
+        engine="yfinance"
         ):
+    
+    O,H,L,C = get_engine_names(engine)
 
     
 
-    features["label"] = neutral_label
+    dataset["label"] = neutral_label
 
     events_indexes = dataset.index[events]
 
@@ -60,7 +69,7 @@ def triple_barrier(
 
         sigma_event = vol_hist[event]
 
-        price_event = dataset.loc[event,close_str]
+        price_event = dataset.loc[event,C]
 
         upper_barrier = price_event*(1+sigma_event)
         
@@ -68,10 +77,10 @@ def triple_barrier(
         inferior_barrier = price_event*(1-sigma_event)
         
 
-        time_window = dataset.loc[event:event+pd.Timedelta(days=window_barrier),[high_str,low_str]]
+        time_window = dataset.loc[event:event+pd.Timedelta(days=window_barrier),[H,L]]
 
-        upper_trepassed = (time_window[high_str] > upper_barrier)
-        lower_trepassed = time_window[low_str] < inferior_barrier
+        upper_trepassed = (time_window[H] > upper_barrier)
+        lower_trepassed = time_window[L] < inferior_barrier
 
         upper_index = upper_trepassed.idxmax() if upper_trepassed.any() else None
         lower_index = lower_trepassed.idxmax() if lower_trepassed.any() else None
@@ -82,11 +91,11 @@ def triple_barrier(
         elif (
             (lower_index is None) or (upper_index is not None and upper_index > lower_index)
             ):
-            features.loc[event,"label"] = buy_label 
+            dataset.loc[event,"label"] = buy_label 
         else:
-            features.loc[event,"label"] = sell_label
+            dataset.loc[event,"label"] = sell_label
 
-    return features
+    return dataset
 
 def vol_to_days(vol_hist):
     return (1/vol_hist).apply(np.ceil).astype(int)
@@ -109,27 +118,24 @@ def return_on_prediction(log_ret, X,vol_hist,y_pred):
         if y_pred[i] == 0:
             returns_windows[i] = -1*ret
         else:
-            returns_windows[i] = ret
-
-    
-    
+            returns_windows[i] = ret   
 
     return returns_windows
 
 def HMM_state_detection(
         dataset, 
-        close="Close", 
-        high="High", 
-        low="Low", 
+        engine="yfinance",
         w = 52,
         p=2,
         train_percentual = 0.8, 
         **hmm_kwargs
         ):
     
+    O,H,L,C = get_engine_names(engine)
+    
     model_hmm  = GaussianHMM(n_components=p,**hmm_kwargs)
 
-    snr_np = signal_to_noise_ratio(dataset,w,close=close,high=high,low=low).dropna().to_numpy().reshape(-1,1)
+    snr_np = signal_to_noise_ratio(dataset,w,close=C,high=H,low=L).dropna().to_numpy().reshape(-1,1)
     
     train_entries = np.ceil(snr_np.shape[0]*train_percentual).astype(int)
 

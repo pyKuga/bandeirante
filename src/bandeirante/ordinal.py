@@ -2,7 +2,7 @@ import numpy as np
 from itertools import permutations
 import math
 
-def OrdinalPatterns(V,n):
+def ordinal_patterns(V,n):
 
     #gera a matriz autoregressiva
     AR = np.array([np.roll(V,i) for i in range(0,n)]).T
@@ -33,7 +33,7 @@ def OrdinalPatterns(V,n):
     
     return classificacao
 
-def PatternsEntropy(patterns,n,m):
+def patterns_entropy(patterns,n,m):
 
     H = np.ones(patterns.shape[0]+n-1)
 
