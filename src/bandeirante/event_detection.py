@@ -22,21 +22,37 @@ def CUSUM_event_detection(
     S_pos = np.zeros(log_returns.shape)
     S_neg = np.zeros(log_returns.shape)
 
+    Sp_k = 0 #S^{+}_{k}
+    Sp_k_1 = 0 #S^{+}_{k-1}
+
+    Sn_k = 0 #S^{-}_{k}
+    Sn_k_1 = 0 #S^{-}_{k-1}
+
     cusum_events = np.zeros(log_returns.shape).astype(bool)
 
     for i in range(1,log_returns.shape[0]):
-        S_pos[i] = np.maximum(log_returns[i]+S_pos[i-1],0)
-        S_neg[i] = np.minimum(log_returns[i]+S_neg[i-1],0)
 
-        if S_pos[i] > np.maximum(h_min,k_up*loc_vol[i]):
-            cusum_events[i] = True
-            S_pos[i] = 0
+        Sp_k = np.maximum(log_returns[i]+Sp_k_1,0)
+        Sn_k = np.minimum(log_returns[i]+Sn_k_1,0)
         
-        elif S_neg[i] < -np.maximum(h_min,k_down*loc_vol[i]):
-            cusum_events[i] = True
-            S_neg[i] = 0
+        S_pos[i] = Sp_k
+        S_neg[i] = Sn_k
 
-    return cusum_events
+        #S_pos[i] = np.maximum(log_returns[i]+S_pos[i-1],0)
+        #S_neg[i] = np.minimum(log_returns[i]+S_neg[i-1],0)       
+
+        if Sp_k > np.maximum(h_min,k_up*loc_vol[i]):
+            cusum_events[i] = True
+            Sp_k = 0
+        
+        elif Sn_k < -np.maximum(h_min,k_down*loc_vol[i]):
+            cusum_events[i] = True
+            Sn_k = 0
+
+        Sp_k_1 = Sp_k
+        Sn_k_1 = Sn_k
+
+    return cusum_events, S_pos, S_neg
 
 
 def time_windows(vol_hist):
@@ -97,13 +113,13 @@ def triple_barrier(
 
     return dataset
 
-def vol_to_days(vol_hist):
+def vol_to_time(vol_hist):
     return (1/vol_hist).apply(np.ceil).astype(int)
 
 def return_on_prediction(log_ret, X,vol_hist,y_pred):
     local_index = X.index
     
-    T = vol_to_days(vol_hist)
+    T = vol_to_time(vol_hist)
 
     deltaT = T.loc[local_index].apply(lambda x: pd.Timedelta(days=x))
 
