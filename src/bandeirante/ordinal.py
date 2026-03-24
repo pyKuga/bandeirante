@@ -2,51 +2,36 @@ import numpy as np
 from itertools import permutations
 import math
 
-def ordinal_patterns(V,n):
+class OrdinalPatternChecker:
+    def __init__(self,n):
+        self.pattern_length = n
 
-    #gera a matriz autoregressiva
-    AR = np.array([np.roll(V,i) for i in range(0,n)]).T
+        self.patterns = np.array(list(permutations(range(n)))) 
 
-    Var =np.flip(AR[n-1:],1)
+        self.n_of_patterns = len(self.patterns)
+
+        self.map = {tuple(p) : i for i,p in enumerate(self.patterns)}
+
+    def check_pattern(self,v):
+
+        rank = np.argsort(np.argsort(v+1e-10*np.random.randn(self.pattern_length)))
+        return self.map[tuple(rank)]
     
-    #executa todas as permutações
-    perm = np.array([np.array(p) for p in permutations(range(0,n))]) 
+    def patterns_on_series(self,data):
+        return data.rolling(window=self.pattern_length).apply(
+            lambda w: self.check_pattern(w),
+            raw = True
+        )
     
-    Vl = np.array([]).reshape(0,n)
-
-    #avalia os padrões ordinais do vetor V
-    for v in Var:
-        U = np.unique(v)
-        s,i = (np.sort(U),np.argsort(U))
-
-        mapa = dict(zip(s,i))
-
-        ordenador = np.vectorize(lambda x: mapa[x])
-        Vl = np.vstack((Vl,ordenador(v)))
-
-    #gera a classificação dos padrões ordinais, testando padrão por padrão em cada array
-    classificacao = np.zeros((Vl.shape[0]))
-
-    for i in range(0,len(perm)):
-        loc = np.sum(perm[i] == Vl,axis=1)==n
-        classificacao[loc] = i
-    
-    return classificacao
-
-def patterns_entropy(patterns,n,m):
-
-    H = np.ones(patterns.shape[0]+n-1)
-
-    for i in range(0,patterns.shape[0]-m):
-
-        window = patterns[i:i+m]
-
-        _,D = np.unique(window,return_counts=True)
+    def entropy(self,v):
+        _,D = np.unique(v,return_counts=True)
 
         D = D/D.sum()
 
-        H[i+n-1+m] =  - np.dot(D,np.log(D))/np.log(math.factorial(n))
+        return -np.dot(D,np.log(D))/np.log(math.factorial(self.pattern_length))
     
-    H[0:n-1+m] = np.nan
-
-    return H
+    def entropy_on_series(self,data,window_length):
+        series_with_patterns = self.patterns_on_series(data)
+        return series_with_patterns.rolling(window=window_length, min_periods=0).apply(
+            lambda w: self.entropy(w)
+        )

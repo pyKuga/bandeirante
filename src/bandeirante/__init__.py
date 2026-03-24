@@ -14,6 +14,7 @@ from .indicators import *
 from .risk_system import *
 from .event_detection import *
 from . import secret
+from .online import *
 
 __all__ = [
     "bc_api",
@@ -33,6 +34,7 @@ __all__ = [
     "indicators",
     "risk_system",
     "event_detection",
-    "secret"
+    "secret",
+    "online"
 ]
 

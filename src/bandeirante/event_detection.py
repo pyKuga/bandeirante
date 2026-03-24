@@ -4,55 +4,62 @@ from hmmlearn.hmm import GaussianHMM
 from bandeirante.indicators import signal_to_noise_ratio, log_ret
 from bandeirante.volatility_lib import get_engine_names
 
-def CUSUM_event_detection(
-        log_ret : pd.Series | np.ndarray,
-        vol_hist,
-        k_up=1, 
-        k_down=1,  
-        h_min = 1e-3
-        ):
+class CUSUM:
+    def __init__(self, k_up=1, k_down=1, h_min = 1e-3):
+        self.k_up = k_up
+        self.k_down = k_down
+        self.h_min = h_min
 
-    log_returns = log_ret.fillna(0).to_numpy()
-    
-    if np.isscalar(vol_hist):
-        loc_vol = np.full_like(log_returns, vol_hist, dtype=float)
-    else:
-        loc_vol = pd.Series(vol_hist).to_numpy()
+        self.Sp_k = 0 #S^{+}_{k}
+        self.Sp_k_1 = 0 #S^{+}_{k-1}
 
-    S_pos = np.zeros(log_returns.shape)
-    S_neg = np.zeros(log_returns.shape)
+        self.Sn_k = 0 #S^{-}_{k}
+        self.Sn_k_1 = 0 #S^{-}_{k-1}
 
-    Sp_k = 0 #S^{+}_{k}
-    Sp_k_1 = 0 #S^{+}_{k-1}
 
-    Sn_k = 0 #S^{-}_{k}
-    Sn_k_1 = 0 #S^{-}_{k-1}
+    def event_detection(self,x,sigma):
 
-    cusum_events = np.zeros(log_returns.shape).astype(bool)
+        event = None 
 
-    for i in range(1,log_returns.shape[0]):
+        self.Sp_k = np.maximum(x+self.Sp_k_1,0)
+        self.Sn_k = np.minimum(x+self.Sn_k_1,0)
 
-        Sp_k = np.maximum(log_returns[i]+Sp_k_1,0)
-        Sn_k = np.minimum(log_returns[i]+Sn_k_1,0)
+        if self.Sp_k > np.maximum(self.h_min,self.k_up*sigma):
+            self.Sp_k = 0
+            event = True
         
-        S_pos[i] = Sp_k
-        S_neg[i] = Sn_k
+        elif self.Sn_k < -np.maximum(self.h_min,self.k_down*sigma):
+            self.Sn_k = 0
+            event = True
+        else:            
+            event = False
 
-        #S_pos[i] = np.maximum(log_returns[i]+S_pos[i-1],0)
-        #S_neg[i] = np.minimum(log_returns[i]+S_neg[i-1],0)       
+        self.Sp_k_1 = self.Sp_k
+        self.Sn_k_1 = self.Sn_k
 
-        if Sp_k > np.maximum(h_min,k_up*loc_vol[i]):
-            cusum_events[i] = True
-            Sp_k = 0
+        return event           
+       
+
+    def detect_on_series(self,data,vol_hist):
+
+        S_pos = np.zeros(data.shape)
+        S_neg = np.zeros(data.shape)
+
+        events = np.zeros(data.shape,dtype=bool)
+
+        if np.isscalar(vol_hist):
+            loc_vol = np.full_like(data, vol_hist, dtype=float)
+        else:
+            loc_vol = pd.Series(vol_hist).to_numpy()
+
+        for i,el in enumerate(data.to_numpy()):
+            sigma = loc_vol[i]
+            S_pos[i] = self.Sp_k
+            S_neg[i] = self.Sn_k
+            events[i] = self.event_detection(el,sigma)
+
         
-        elif Sn_k < -np.maximum(h_min,k_down*loc_vol[i]):
-            cusum_events[i] = True
-            Sn_k = 0
-
-        Sp_k_1 = Sp_k
-        Sn_k_1 = Sn_k
-
-    return cusum_events, S_pos, S_neg
+        return events, S_pos, S_neg
 
 
 def time_windows(vol_hist):
@@ -72,9 +79,9 @@ def triple_barrier(
     
     O,H,L,C = get_engine_names(engine)
 
-    
-
-    dataset["label"] = neutral_label
+    labels = pd.Series(
+        np.ones(dataset.shape[0])*neutral_label,
+        index=dataset.index)
 
     events_indexes = dataset.index[events]
 
@@ -88,8 +95,6 @@ def triple_barrier(
         price_event = dataset.loc[event,C]
 
         upper_barrier = price_event*(1+sigma_event)
-        
-
         inferior_barrier = price_event*(1-sigma_event)
         
 
@@ -107,11 +112,11 @@ def triple_barrier(
         elif (
             (lower_index is None) or (upper_index is not None and upper_index > lower_index)
             ):
-            dataset.loc[event,"label"] = buy_label 
+            labels.loc[event] = buy_label 
         else:
-            dataset.loc[event,"label"] = sell_label
+            labels.loc[event] = sell_label
 
-    return dataset
+    return labels
 
 def vol_to_time(vol_hist):
     return (1/vol_hist).apply(np.ceil).astype(int)
