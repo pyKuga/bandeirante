@@ -12,3 +12,5 @@ src/bandeirante/__pycache__
 src/bandeirante.egg-info
 notebook/not_released
 src/bandeirante/secret.py
+src/bandeirante/online.py
+

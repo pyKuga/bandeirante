@@ -16,6 +16,18 @@ class CUSUM:
         self.Sn_k = 0 #S^{-}_{k}
         self.Sn_k_1 = 0 #S^{-}_{k-1}
 
+        self.S_pos = 0
+        self.S_neg = 0
+
+    def reset(self):
+        self.Sp_k = 0 #S^{+}_{k}
+        self.Sp_k_1 = 0 #S^{+}_{k-1}
+
+        self.Sn_k = 0 #S^{-}_{k}
+        self.Sn_k_1 = 0 #S^{-}_{k-1}
+
+        self.S_pos = 0
+        self.S_neg = 0
 
     def event_detection(self,x,sigma):
 
@@ -23,6 +35,9 @@ class CUSUM:
 
         self.Sp_k = np.maximum(x+self.Sp_k_1,0)
         self.Sn_k = np.minimum(x+self.Sn_k_1,0)
+
+        self.S_pos = self.Sp_k
+        self.S_neg = self.Sn_k
 
         if self.Sp_k > np.maximum(self.h_min,self.k_up*sigma):
             self.Sp_k = 0
@@ -42,9 +57,6 @@ class CUSUM:
 
     def detect_on_series(self,data,vol_hist):
 
-        S_pos = np.zeros(data.shape)
-        S_neg = np.zeros(data.shape)
-
         events = np.zeros(data.shape,dtype=bool)
 
         if np.isscalar(vol_hist):
@@ -54,27 +66,28 @@ class CUSUM:
 
         for i,el in enumerate(data.to_numpy()):
             sigma = loc_vol[i]
-            S_pos[i] = self.Sp_k
-            S_neg[i] = self.Sn_k
             events[i] = self.event_detection(el,sigma)
-
         
-        return events, S_pos, S_neg
+        return events
 
 
 def time_windows(vol_hist):
-    return (1/vol_hist).apply(np.ceil).astype(int)
+    if np.isscalar(vol_hist):
+        return 1/vol_hist
+    else:
+        return (1/vol_hist).apply(np.ceil).astype(int)
+    
     
 
 def triple_barrier(
         dataset,
         vol_hist,
         events,
-        maximum_window = 20,
         buy_label = 1,
         neutral_label = 2,
         sell_label = 0,
-        engine="yfinance"
+        engine="yfinance",
+        **timedelta_kwargs
         ):
     
     O,H,L,C = get_engine_names(engine)
@@ -85,12 +98,19 @@ def triple_barrier(
 
     events_indexes = dataset.index[events]
 
-    windows_T = time_windows(vol_hist)
+    
+
+    if np.isscalar(vol_hist):
+        loc_vol = pd.Series(vol_hist,index=dataset.index)
+    else:
+        loc_vol = pd.Series(vol_hist)
+
+    #windows_T = time_windows(loc_vol)
 
     for event in events_indexes:
-        window_barrier = np.minimum(maximum_window,windows_T[event])
+        #window_barrier = np.minimum(maximum_window,windows_T[event])
 
-        sigma_event = vol_hist[event]
+        sigma_event = loc_vol[event]
 
         price_event = dataset.loc[event,C]
 
@@ -98,7 +118,7 @@ def triple_barrier(
         inferior_barrier = price_event*(1-sigma_event)
         
 
-        time_window = dataset.loc[event:event+pd.Timedelta(days=window_barrier),[H,L]]
+        time_window = dataset.loc[event:event+pd.Timedelta(**timedelta_kwargs),[H,L]]
 
         upper_trepassed = (time_window[H] > upper_barrier)
         lower_trepassed = time_window[L] < inferior_barrier
